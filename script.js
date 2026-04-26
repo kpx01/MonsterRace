@@ -60,6 +60,12 @@ let accumulator = 0;
 
 // --- 初期化 ---
 function init() {
+    // キャンバスの内部解像度を16:9に固定
+    canvas.width = WIN_W;
+    canvas.height = WIN_H;
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
     // 雲の初期化
     for (let i = 0; i < 6; i++) {
         clouds.push({ x: Math.random() * WIN_W, y: 100 + Math.random() * 100, icon: "☁️" });
@@ -76,6 +82,21 @@ function init() {
 
     canvas.addEventListener('click', handleCanvasClick);
     requestAnimationFrame(gameLoop);
+}
+
+function resizeCanvas() {
+    const windowRatio = window.innerWidth / window.innerHeight;
+    const gameRatio = WIN_W / WIN_H;
+
+    if (windowRatio > gameRatio) {
+        // ウィンドウが横長すぎる場合、高さを基準にする
+        canvas.style.height = window.innerHeight + 'px';
+        canvas.style.width = (window.innerHeight * gameRatio) + 'px';
+    } else {
+        // ウィンドウが縦長すぎる場合、幅を基準にする
+        canvas.style.width = window.innerWidth + 'px';
+        canvas.style.height = (window.innerWidth / gameRatio) + 'px';
+    }
 }
 
 function setupRace() {
@@ -477,8 +498,11 @@ function drawResult() {
 // --- インタラクション ---
 function handleCanvasClick(e) {
     const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    // CSSでリサイズされた表示サイズと内部解像度の比率を計算して座標を変換
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
 
     if (currentScene === "title") {
         currentScene = "select";
