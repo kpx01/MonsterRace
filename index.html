@@ -3,23 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JavaScript Demo</title>
+    <title>Monster Race JS</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-    <div class="container">
-        <h1>Counter</h1>
-        <div id="display" class="counter-display">0</div>
-        
-        <div class="button-group">
-            <button id="decrement" class="btn">減少</button>
-            <button id="reset" class="btn btn-secondary">リセット</button>
-            <button id="increment" class="btn">増加</button>
+    <div id="game-container">
+        <canvas id="gameCanvas" width="1280" height="720"></canvas>
+        <div id="ui-instructions" style="text-align: center; color: #666; font-family: sans-serif; margin-top: 10px;">
+            1P操作: 画面下のモンスターアイコンをクリックして交代
         </div>
     </div>
-
-    <!-- JavaScriptはDOMの読み込み完了後に実行させるため、bodyの最後に配置します -->
     <script src="script.js"></script>
 </body>
 </html>
