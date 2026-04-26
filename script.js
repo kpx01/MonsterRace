@@ -101,8 +101,8 @@ function resizeCanvas() {
 
 function setupRace() {
     cameraX = -INITIAL_OFFSET;
-    cur_pos1 = 0;
-    cur_pos2 = 0;
+    cur_pos1 = -100; // スタートエリア (-200 〜 0) の中心に配置
+    cur_pos2 = -100;
     p1_finish_time = null;
     p2_finish_time = null;
 
@@ -186,7 +186,9 @@ function update() {
     if (isRacing && !countdownActive) {
         const getTerrain = (pos) => {
             const t = terrain_configs.find(tc => pos >= tc.start && pos < tc.end);
-            return t ? t.name : terrain_configs[terrain_configs.length - 1].name;
+            if (t) return t.name;
+            if (pos < 0) return terrain_configs[0].name; // スタート地点より前は最初の地形として扱う
+            return terrain_configs[terrain_configs.length - 1].name;
         };
 
         // 1P & 2P Movement
@@ -293,16 +295,16 @@ function drawTitle() {
     ctx.fillRect(0, 0, WIN_W, WIN_H);
     
     // 背景モンスター
-    ctx.font = "60px Arial";
+    ctx.font = "80px Arial";
     titleMonsters.forEach(m => {
         ctx.fillText(m.icon, m.x, m.y + Math.sin(m.x * 0.05) * 10);
     });
 
     ctx.fillStyle = "#333";
     ctx.textAlign = "center";
-    ctx.font = "bold 100px 'MS Gothic'";
+    ctx.font = "bold 120px Arial";
     ctx.fillText("MONSTER RACE", WIN_W / 2, 300);
-    ctx.font = "bold 30px 'MS Gothic'";
+    ctx.font = "bold 40px Arial";
     ctx.fillText("CLICK START", WIN_W / 2, 420);
 }
 
@@ -311,16 +313,16 @@ function drawSelect() {
     ctx.fillRect(0, 0, WIN_W, WIN_H);
     ctx.fillStyle = "#333";
     ctx.textAlign = "center";
-    ctx.font = "bold 40px 'MS Gothic'";
+    ctx.font = "bold 50px Arial";
     ctx.fillText("CHOOSE YOUR TEAM (SELECT 3)", WIN_W / 2, 100);
 
     MONSTER_POOL.forEach((m, i) => {
         const col = i % 3, row = Math.floor(i / 3);
         const x = 340 + col * 300, y = 200 + row * 150;
         
-        ctx.font = "60px Arial";
+        ctx.font = "80px Arial";
         ctx.fillText(m.icon, x, y);
-        ctx.font = "bold 20px 'MS Gothic'";
+        ctx.font = "bold 24px Arial";
         ctx.fillText(m.name, x, y + 40);
         
         if (selectedIndices.includes(i)) {
@@ -330,10 +332,10 @@ function drawSelect() {
         }
     });
 
-    ctx.font = "bold 24px 'MS Gothic'";
+    ctx.font = "bold 30px Arial";
     const selectedIcons = selectedIndices.map(i => MONSTER_POOL[i].icon).join(" ");
     ctx.fillText("Selected: " + (selectedIcons || "None"), WIN_W / 2, 550);
-    ctx.font = "bold 16px 'MS Gothic'";
+    ctx.font = "bold 20px Arial";
     ctx.fillText("アイコンをクリックして選択（3体選ぶと開始）", WIN_W / 2, 600);
 }
 
@@ -342,7 +344,7 @@ function drawRace() {
     ctx.fillRect(0, 0, WIN_W, WIN_H);
 
     // 雲
-    ctx.font = "40px Arial";
+    ctx.font = "50px Arial";
     clouds.forEach(c => ctx.fillText(c.icon, c.x, c.y));
 
     // 地形とスクロール要素の描画開始
@@ -368,7 +370,7 @@ function drawRace() {
     ctx.stroke();
 
     // 装飾
-    ctx.font = "20px Arial";
+    ctx.font = "24px Arial";
     decors.forEach(d => ctx.fillText(d.icon, d.x, d.y));
 
     // ゴール線
@@ -377,7 +379,7 @@ function drawRace() {
     ctx.beginPath(); ctx.moveTo(FINISH_X, TERRAIN_Y_TOP + 30); ctx.lineTo(FINISH_X, STATUS_BAR_Y - 20); ctx.stroke();
 
     // モンスター
-    ctx.font = "80px Arial";
+    ctx.font = "100px Arial";
     ctx.textAlign = "center";
     const bob1 = Math.sin(cur_pos1 * 0.05) * 10;
     const bob2 = Math.sin(cur_pos2 * 0.05) * 10;
@@ -393,7 +395,7 @@ function drawRace() {
         ctx.fillStyle = "rgba(0,0,0,0.3)";
         ctx.fillRect(0,0,WIN_W,WIN_H);
         ctx.fillStyle = "white";
-        ctx.font = "bold 150px Arial";
+        ctx.font = "bold 180px Arial";
         ctx.fillText(countdownValue > 0 ? countdownValue : "GO!", WIN_W/2, WIN_H/2);
     }
 }
@@ -409,24 +411,24 @@ function drawHUD() {
         ctx.fillStyle = t.color;
         ctx.fillRect(mapX + (t.start / FINISH_X) * mapW, mapY, (2000 / FINISH_X) * mapW, mapH);
     });
-    ctx.font = "20px Arial";
-    ctx.fillText(p1_team[p1_idx].icon, mapX + (Math.min(cur_pos1, FINISH_X) / FINISH_X) * mapW, mapY + 45);
-    ctx.fillText(p2_team[p2_idx].icon, mapX + (Math.min(cur_pos2, FINISH_X) / FINISH_X) * mapW, mapY + 20);
+    ctx.font = "24px Arial";
+    ctx.fillText(p1_team[p1_idx].icon, mapX + (Math.max(0, Math.min(cur_pos1, FINISH_X)) / FINISH_X) * mapW, mapY + 45);
+    ctx.fillText(p2_team[p2_idx].icon, mapX + (Math.max(0, Math.min(cur_pos2, FINISH_X)) / FINISH_X) * mapW, mapY + 20);
 
     // 1Pステータス
-    drawPlayerStatus(1, 80, 660);
+    drawPlayerStatus(1, 80, STATUS_BAR_Y + 22);
     // 2Pステータス
-    drawPlayerStatus(2, 680, 660);
+    drawPlayerStatus(2, 680, STATUS_BAR_Y + 22);
     
     // タイム
     ctx.fillStyle = "#333";
-    ctx.font = "bold 20px Arial";
+    ctx.font = "bold 24px Arial";
     ctx.textAlign = "right";
     const elapsed = isRacing ? (Date.now() - startTime) / 1000 : 0;
     ctx.fillText(`Time: ${elapsed.toFixed(2)}s`, WIN_W - 20, 30);
 }
 
-function drawPlayerStatus(p, x, y) {
+function drawPlayerStatus(p, x, baseY) {
     const isP1 = p === 1;
     const team = isP1 ? p1_team : p2_team;
     const idx = isP1 ? p1_idx : p2_idx;
@@ -435,37 +437,46 @@ function drawPlayerStatus(p, x, y) {
 
     ctx.textAlign = "left";
     ctx.fillStyle = "#333";
-    ctx.font = "bold 12px 'MS Gothic'";
-    ctx.fillText(`名前: ${m.name}${isP1 ? "" : " [CPU]"}`, x, y);
-    ctx.fillText(`${m.icon} スタミナ:`, x, y + 25);
+    ctx.font = "bold 16px Arial";
+    
+    let currentY = baseY;
+    ctx.fillText(`名前: ${m.name}${isP1 ? "" : " [CPU]"}`, x, currentY);
+    currentY += 20; // 速度表示のためにY座標を下に移動
+    ctx.fillText(`速度: ${m.min_spd} - ${m.max_spd}`, x, currentY);
+    currentY += 20; // スタミナ表示のためにY座標を下に移動
+    ctx.fillText(`${m.icon} スタミナ:`, x, currentY);
 
     // スタミナバー
-    const barW = 300, barH = 20, barX = x + 120, barY = y + 10;
+    const barW = 300, barH = 20, barX = x + 120, barY = baseY + 25; // スタミナバーのY座標を調整
     ctx.fillStyle = "#555";
     ctx.fillRect(barX, barY, barW, barH);
     ctx.fillStyle = isP1 ? "#4CAF50" : "#2196F3";
     ctx.fillRect(barX, barY, barW * (stamina / m.max_stamina), barH);
     ctx.fillStyle = "white";
-    ctx.font = "10px Arial";
-    ctx.fillText(`${stamina.toFixed(1)} / ${m.max_stamina}`, barX + 110, barY + 14);
+    ctx.font = "14px Arial";
+    ctx.fillText(`${stamina.toFixed(1)} / ${m.max_stamina}`, barX + 100, barY + 15);
 
     // チームアイコン
     team.forEach((tm, i) => {
-        const iconX = x + 440 + i * 50;
-        const iconY = y + 20;
-        ctx.font = "25px Arial";
-        ctx.fillText(tm.icon, iconX, iconY);
+        const iconX = x + 440 + i * 50; // 水平位置は変更なし
+        const iconY = baseY + 20; // チームアイコンのY座標を少し上に調整
+        ctx.textAlign = "center";
+        ctx.font = "32px Arial";
+        // クリック判定の中心(iconX + 10)に合わせて中央揃えで描画
+        ctx.fillText(tm.icon, iconX + 10, iconY);
         if (i === idx) {
             ctx.strokeStyle = "#FF4500";
             ctx.lineWidth = 2;
-            ctx.strokeRect(iconX - 5, iconY - 25, 35, 35);
+            // クリック判定範囲(40x40)と一致させる
+            ctx.strokeRect(iconX - 10, iconY - 30, 40, 40);
         }
         // 相性表示
         const curTerrain = terrain_configs.find(tc => (isP1 ? cur_pos1 : cur_pos2) >= tc.start && (isP1 ? cur_pos1 : cur_pos2) < tc.end);
         const aff = tm.affinities[curTerrain ? curTerrain.name : "草原"] || "○";
-        ctx.font = "bold 10px Arial";
+        ctx.textAlign = "center"; // アイコンに合わせて中央揃え
+        ctx.font = "bold 20px Arial"; // フォントサイズを大きく
         ctx.fillStyle = "#FF4500";
-        ctx.fillText(aff, iconX + 10, iconY + 15);
+        ctx.fillText(aff, iconX + 10, iconY + 30); // 相性表示も少し上に移動
     });
 }
 
@@ -480,18 +491,18 @@ function drawResult() {
     else if (p1_finish_time > p2_finish_time) { outcome = "1P LOSE..."; color = "#FF4444"; }
 
     ctx.fillStyle = color;
-    ctx.font = "bold 80px 'MS Gothic'";
+    ctx.font = "bold 100px Arial";
     ctx.fillText(outcome, WIN_W / 2, 200);
 
     ctx.fillStyle = "#333";
-    ctx.font = "bold 40px 'MS Gothic'";
+    ctx.font = "bold 50px Arial";
     const first = p1_finish_time < p2_finish_time ? { i: p1_team[p1_idx].icon, t: p1_finish_time } : { i: p2_team[p2_idx].icon, t: p2_finish_time };
     const second = p1_finish_time > p2_finish_time ? { i: p1_team[p1_idx].icon, t: p1_finish_time } : { i: p2_team[p2_idx].icon, t: p2_finish_time };
 
     ctx.fillText(`1st: ${first.i} ${first.t.toFixed(2)}s`, WIN_W / 2, 350);
     ctx.fillText(`2nd: ${second.i} ${second.t.toFixed(2)}s`, WIN_W / 2, 420);
     
-    ctx.font = "20px 'MS Gothic'";
+    ctx.font = "24px Arial";
     ctx.fillText("CLICK TO RESTART", WIN_W / 2, 550);
 }
 
@@ -529,7 +540,7 @@ function handleCanvasClick(e) {
         // 1P チーム交代ボタン判定
         for (let i = 0; i < TEAM_SIZE; i++) {
             const btnX = 80 + 440 + i * 50;
-            const btnY = 660 + 20;
+            const btnY = (STATUS_BAR_Y + 22) + 20; // 描画位置(baseY + 25)と同期
             if (x > btnX - 10 && x < btnX + 30 && y > btnY - 30 && y < btnY + 10) {
                 if (i !== p1_idx) swapMonster(1, i);
             }
