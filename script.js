@@ -15,17 +15,17 @@ const START_X = -100;
 const INITIAL_OFFSET = 250;
 const SCROLL_THRESHOLD = 600;
 const TEAM_SIZE = 3;
-const SWAP_LAG_TICKS = 10;
+const SWAP_LAG_TICKS = 20;
 const TICK_MS = 50;
 
 // モンスターデータ
 const MONSTER_POOL = [
-    { icon: "🦖", name: "爆走恐竜", min_spd: 23, max_spd: 30, max_stamina: 50.0, affinities: { "草原": "◎", "砂漠": "○", "雪原": "△", "火山": "○", "海辺": "△", "宇宙": "○" } },
-    { icon: "🐉", name: "砂漠の龍", min_spd: 19, max_spd: 23, max_stamina: 75.0, affinities: { "草原": "△", "砂漠": "△", "雪原": "○", "火山": "◎", "海辺": "◎", "宇宙": "△" } },
-    { icon: "🎠", name: "夢幻一角獣", min_spd: 22, max_spd: 28, max_stamina: 60.0, affinities: { "草原": "◎", "砂漠": "○", "雪原": "△", "火山": "△", "海辺": "○", "宇宙": "◎" } },
-    { icon: "🐢", name: "古の巨亀", min_spd: 16, max_spd: 18, max_stamina: 130.0, affinities: { "草原": "○", "砂漠": "○", "雪原": "○", "火山": "△", "海辺": "◎", "宇宙": "◎" } },
-    { icon: "🐫", name: "砂漠の走者", min_spd: 20, max_spd: 24, max_stamina: 95.0, affinities: { "草原": "○", "砂漠": "◎", "雪原": "△", "火山": "◎", "海辺": "○", "宇宙": "△" } },
-    { icon: "🦮", name: "凍土の狼", min_spd: 23, max_spd: 27, max_stamina: 70.0, affinities: { "草原": "○", "砂漠": "◎", "雪原": "◎", "火山": "△", "海辺": "△", "宇宙": "○" } }
+    { icon: "🦖", name: "恐竜", min_spd: 19, max_spd: 24, max_stamina: 60.0, affinities: { "草原": "◎", "砂漠": "○", "雪原": "△", "火山": "○", "海辺": "△", "宇宙": "○" } },
+    { icon: "🐉", name: "龍", min_spd: 15, max_spd: 21, max_stamina: 90.0, affinities: { "草原": "△", "砂漠": "△", "雪原": "○", "火山": "◎", "海辺": "◎", "宇宙": "△" } },
+    { icon: "🎠", name: "ウマ", min_spd: 16, max_spd: 23, max_stamina: 70.0, affinities: { "草原": "◎", "砂漠": "○", "雪原": "△", "火山": "△", "海辺": "○", "宇宙": "◎" } },
+    { icon: "🐢", name: "カメ", min_spd: 12, max_spd: 17, max_stamina: 150.0, affinities: { "草原": "○", "砂漠": "○", "雪原": "◎", "火山": "△", "海辺": "◎", "宇宙": "◎" } },
+    { icon: "🐫", name: "ラクダ", min_spd: 14, max_spd: 19, max_stamina: 120.0, affinities: { "草原": "○", "砂漠": "◎", "雪原": "△", "火山": "◎", "海辺": "○", "宇宙": "△" } },
+    { icon: "🐕️", name: "イヌ", min_spd: 18, max_spd: 22, max_stamina: 65.0, affinities: { "草原": "○", "砂漠": "◎", "雪原": "◎", "火山": "△", "海辺": "△", "宇宙": "○" } }
 ];
 
 const TERRAIN_POOL = [
@@ -120,7 +120,7 @@ function handleCanvasMouseMove(e) {
     let newHoveredIndex = -1;
     MONSTER_POOL.forEach((m, i) => {
         const col = i % 3, row = Math.floor(i / 3);
-        const mx = 340 + col * 300, my = 200 + row * 150;
+        const mx = 340 + col * 300, my = 300 + row * 150;
         if (mouseX > mx - 100 && mouseX < mx + 100 && mouseY > my - 70 && mouseY < my + 60) {
             newHoveredIndex = i;
         }
@@ -142,8 +142,14 @@ function setupRace() {
 
     // 地形生成
     terrain_configs = [];
-    for (let i = 0; i < 6; i++) {
-        const t = TERRAIN_POOL[Math.floor(Math.random() * TERRAIN_POOL.length)];
+    for (let i = 0; i < 6; i++) { // 地形は6セクション
+        let t;
+        if (i === 0) {
+            // 最初の地形は草原に固定
+            t = TERRAIN_POOL.find(terrain => terrain.name === "草原");
+        } else {
+            t = TERRAIN_POOL[Math.floor(Math.random() * TERRAIN_POOL.length)];
+        }
         terrain_configs.push({ ...t, start: i * 2000, end: (i + 1) * 2000 });
     }
 
@@ -239,20 +245,20 @@ function update() {
 
             const terrain = getTerrain(pos);
             const aff = monster.affinities[terrain] || "○";
-            const bonus = aff === "◎" ? 10 : aff === "△" ? -10 : 0;
-            const factor = 0.6 + (stamina / monster.max_stamina) * 0.4;
+            const bonus = aff === "◎" ? 1.25 : aff === "△" ? 0.75 : 1.0;
+            const factor = 0.4 + (stamina / monster.max_stamina) * 0.6;
             
-            let dx = (Math.floor(Math.random() * (monster.max_spd - monster.min_spd + 1)) + monster.min_spd) * factor + bonus;
+            let dx = (Math.floor(Math.random() * (monster.max_spd - monster.min_spd + 1)) + monster.min_spd) * factor * bonus;
             if (swapTicks > 0) dx *= 0.5;
 
             if (isP1) {
                 cur_pos1 += dx;
-                m1_stamina = Math.max(0, m1_stamina - 0.15);
+                m1_stamina = Math.max(0, m1_stamina - 0.2);
                 if (m1_swap_ticks > 0) m1_swap_ticks--;
                 if (cur_pos1 >= FINISH_X && p1_finish_time === null) p1_finish_time = (Date.now() - startTime) / 1000;
             } else {
                 cur_pos2 += dx;
-                m2_stamina = Math.max(0, m2_stamina - 0.15);
+                m2_stamina = Math.max(0, m2_stamina - 0.2);
                 if (m2_swap_ticks > 0) m2_swap_ticks--;
                 if (cur_pos2 >= FINISH_X && p2_finish_time === null) p2_finish_time = (Date.now() - startTime) / 1000;
                 
@@ -348,11 +354,15 @@ function drawSelect() {
     ctx.fillStyle = "#333";
     ctx.textAlign = "center";
     ctx.font = "bold 50px Arial";
-    ctx.fillText("CHOOSE YOUR TEAM (SELECT 3)", WIN_W / 2, 100);
+    ctx.fillText("3体選んでください", WIN_W / 2, 100);
+    ctx.font = "bold 24px Arial";
+    ctx.fillStyle = "#666";
+    ctx.fillText("最初の地形: 草原", WIN_W / 2, 150);
+    ctx.fillStyle = "#333";
 
     MONSTER_POOL.forEach((m, i) => {
         const col = i % 3, row = Math.floor(i / 3);
-        const x = 340 + col * 300, y = 200 + row * 150;
+        const x = 340 + col * 300, y = 300 + row * 150;
         
         ctx.font = "80px Arial";
         ctx.fillText(m.icon, x, y);
@@ -369,8 +379,23 @@ function drawSelect() {
     ctx.font = "bold 30px Arial";
     const selectedIcons = selectedIndices.map(i => MONSTER_POOL[i].icon).join(" ");
     ctx.fillText("Selected: " + (selectedIcons || "None"), WIN_W / 2, 550);
-    ctx.font = "bold 20px Arial";
-    ctx.fillText("アイコンをクリックして選択（3体選ぶと開始）", WIN_W / 2, 600);
+
+    if (selectedIndices.length === TEAM_SIZE) {
+        // レース開始ボタン
+        ctx.fillStyle = "#FF4500";
+        ctx.beginPath();
+        ctx.roundRect(WIN_W / 2 - 150, 580, 300, 70, 15);
+        ctx.fill();
+        ctx.strokeStyle = "white";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.fillStyle = "white";
+        ctx.font = "bold 32px Arial";
+        ctx.fillText("START RACE", WIN_W / 2, 625);
+    } else {
+        ctx.font = "bold 20px Arial";
+        ctx.fillText("アイコンをクリックして選択", WIN_W / 2, 600);
+    }
 
     // ホバー中のモンスターのステータス詳細を表示
     if (hoveredMonsterIndex !== -1) {
@@ -384,9 +409,14 @@ function drawSelect() {
         if (drawX + panelW > WIN_W) drawX = mouseX - panelW - 20;
         if (drawY + panelH > WIN_H) drawY = WIN_H - panelH - 10;
 
-        // 背景パネル (半透明の黒)
+        // 背景パネル (半透明の黒、角丸とボーダー)
+        ctx.beginPath();
+        ctx.roundRect(drawX, drawY, panelW, panelH, 15);
         ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
-        ctx.fillRect(drawX, drawY, panelW, panelH);
+        ctx.fill();
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+        ctx.lineWidth = 2;
+        ctx.stroke();
 
         ctx.textAlign = "left";
         ctx.fillStyle = "white"; // 黒背景で見やすいように白文字に変更
@@ -597,20 +627,23 @@ function handleCanvasClick(e) {
         currentScene = "select";
         selectedIndices = [];
     } else if (currentScene === "select") {
+        // レース開始ボタンのクリック判定
+        if (selectedIndices.length === TEAM_SIZE) {
+            if (x > WIN_W / 2 - 150 && x < WIN_W / 2 + 150 && y > 580 && y < 650) {
+                currentScene = "race";
+                setupRace();
+                return;
+            }
+        }
+
         MONSTER_POOL.forEach((m, i) => {
             const col = i % 3, row = Math.floor(i / 3);
-            const mx = 340 + col * 300, my = 200 + row * 150;
+            const mx = 340 + col * 300, my = 300 + row * 150;
             if (x > mx - 100 && x < mx + 100 && y > my - 70 && y < my + 60) {
                 if (selectedIndices.includes(i)) {
                     selectedIndices = selectedIndices.filter(idx => idx !== i);
                 } else if (selectedIndices.length < TEAM_SIZE) {
                     selectedIndices.push(i);
-                    if (selectedIndices.length === TEAM_SIZE) {
-                        setTimeout(() => {
-                            currentScene = "race";
-                            setupRace();
-                        }, 500);
-                    }
                 }
             }
         });
