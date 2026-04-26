@@ -55,6 +55,8 @@ let decors = [];
 let countdownValue = 0;
 let countdownActive = false;
 let titleMonsters = [];
+let hoveredMonsterIndex = -1; // ホバー中のモンスターのインデックス
+let mouseX = 0, mouseY = 0; // マウスの現在座標を保持
 let lastFrameTime = 0;
 let accumulator = 0;
 
@@ -81,6 +83,7 @@ function init() {
     }
 
     canvas.addEventListener('click', handleCanvasClick);
+    canvas.addEventListener('mousemove', handleCanvasMouseMove);
     requestAnimationFrame(gameLoop);
 }
 
@@ -96,6 +99,37 @@ function resizeCanvas() {
         // ウィンドウが縦長すぎる場合、幅を基準にする
         canvas.style.width = window.innerWidth + 'px';
         canvas.style.height = (window.innerWidth / gameRatio) + 'px';
+    }
+}
+
+function handleCanvasMouseMove(e) {
+    if (currentScene !== "select") {
+        if (hoveredMonsterIndex !== -1) {
+            hoveredMonsterIndex = -1;
+            draw();
+        }
+        return;
+    }
+
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    mouseX = (e.clientX - rect.left) * scaleX;
+    mouseY = (e.clientY - rect.top) * scaleY;
+
+    let newHoveredIndex = -1;
+    MONSTER_POOL.forEach((m, i) => {
+        const col = i % 3, row = Math.floor(i / 3);
+        const mx = 340 + col * 300, my = 200 + row * 150;
+        if (mouseX > mx - 100 && mouseX < mx + 100 && mouseY > my - 70 && mouseY < my + 60) {
+            newHoveredIndex = i;
+        }
+    });
+
+    // ホバー対象が変わった、またはホバー中にマウスが動いた場合に再描画
+    if (newHoveredIndex !== hoveredMonsterIndex || newHoveredIndex !== -1) {
+        hoveredMonsterIndex = newHoveredIndex;
+        draw();
     }
 }
 
@@ -337,6 +371,50 @@ function drawSelect() {
     ctx.fillText("Selected: " + (selectedIcons || "None"), WIN_W / 2, 550);
     ctx.font = "bold 20px Arial";
     ctx.fillText("アイコンをクリックして選択（3体選ぶと開始）", WIN_W / 2, 600);
+
+    // ホバー中のモンスターのステータス詳細を表示
+    if (hoveredMonsterIndex !== -1) {
+        const m = MONSTER_POOL[hoveredMonsterIndex];
+        const panelW = 260;
+        const panelH = 350;
+        let drawX = mouseX + 20; // マウスの少し右側に表示
+        let drawY = mouseY;
+
+        // 画面端でパネルが隠れないように調整
+        if (drawX + panelW > WIN_W) drawX = mouseX - panelW - 20;
+        if (drawY + panelH > WIN_H) drawY = WIN_H - panelH - 10;
+
+        // 背景パネル (半透明の黒)
+        ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
+        ctx.fillRect(drawX, drawY, panelW, panelH);
+
+        ctx.textAlign = "left";
+        ctx.fillStyle = "white"; // 黒背景で見やすいように白文字に変更
+        
+        let textX = drawX + 20;
+        let textY = drawY + 40;
+
+        ctx.font = "bold 28px Arial";
+        ctx.fillText(m.name, textX, textY);
+        textY += 40;
+
+        ctx.font = "20px Arial";
+        ctx.fillText(`速度: ${m.min_spd} - ${m.max_spd}`, textX, textY);
+        textY += 30;
+        ctx.fillText(`スタミナ: ${m.max_stamina}`, textX, textY);
+        textY += 40;
+
+        ctx.font = "bold 24px Arial";
+        ctx.fillText("地形相性:", textX, textY);
+        textY += 30;
+
+        ctx.font = "20px Arial";
+        for (const terrainName in m.affinities) {
+            const affinity = m.affinities[terrainName];
+            ctx.fillText(`${terrainName}: ${affinity}`, textX, textY);
+            textY += 25;
+        }
+    }
 }
 
 function drawRace() {
