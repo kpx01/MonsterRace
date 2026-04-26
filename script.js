@@ -55,6 +55,8 @@ let decors = [];
 let countdownValue = 0;
 let countdownActive = false;
 let titleMonsters = [];
+let lastFrameTime = 0;
+let accumulator = 0;
 
 // --- 初期化 ---
 function init() {
@@ -131,8 +133,20 @@ function startCountdown() {
 }
 
 // --- メインループ ---
-function gameLoop() {
-    update();
+function gameLoop(timestamp) {
+    if (!lastFrameTime) lastFrameTime = timestamp;
+    const deltaTime = timestamp - lastFrameTime;
+    lastFrameTime = timestamp;
+
+    // 前回のフレームからの経過時間を蓄積（最大250msに制限して、タブ復帰時の急加速を防止）
+    accumulator = Math.min(accumulator + deltaTime, 250);
+
+    // TICK_MS (50ms) が経過するごとに update を実行し、ロジックの進行を一定に保つ
+    while (accumulator >= TICK_MS) {
+        update();
+        accumulator -= TICK_MS;
+    }
+
     draw();
     requestAnimationFrame(gameLoop);
 }
